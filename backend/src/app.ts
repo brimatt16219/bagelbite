@@ -12,6 +12,9 @@ import { errorHandler, notFound } from './lib/errors'
 import type { Clock } from './lib/clock'
 import type { AiService } from './ai/types'
 import { topicsRouter } from './routes/topics'
+import { bitesRouter } from './routes/bites'
+import type { GroundingClient } from './grounding/tavily'
+import type { ExerciseValidator } from './content/exerciseValidator'
 
 export interface AppDeps {
   config: Pick<Config, 'corsOrigins' | 'NODE_ENV'>
@@ -19,6 +22,8 @@ export interface AppDeps {
   verifier: TokenVerifier
   clock: Clock
   ai: AiService
+  grounding: GroundingClient
+  validator: ExerciseValidator
 }
 
 export function createApp(deps: AppDeps) {
@@ -56,6 +61,7 @@ export function createApp(deps: AppDeps) {
   })
 
   api.use(topicsRouter(deps))
+  api.use(bitesRouter(deps))
 
   app.use(api)
   app.use((_req, _res, next) => next(notFound('Route')))

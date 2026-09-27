@@ -6,6 +6,8 @@ import { systemClock } from './lib/clock'
 import { AnthropicAiService } from './ai/anthropic'
 import { OfflineAiService } from './ai/offline'
 import { DbUsageRecorder } from './ai/usage'
+import { DisabledGroundingClient, TavilyGroundingClient } from './grounding/tavily'
+import { SandboxExerciseValidator, SkipExerciseValidator } from './content/exerciseValidator'
 
 async function main() {
   const config = loadConfig()
@@ -28,7 +30,14 @@ async function main() {
         })
   if (config.LLM_PROVIDER === 'offline') console.warn('[config] LLM_PROVIDER=offline — serving labelled template content, not AI output')
 
-  const app = createApp({ config, db: database.db, verifier, clock: systemClock, ai })
+  const grounding =
+    config.GROUNDING === 'tavily' && config.TAVILY_API_KEY
+      ? new TavilyGroundingClient(config.TAVILY_API_KEY, usage)
+      : new DisabledGroundingClient()
+  if (!grounding.enabled) console.warn('[config] GROUNDING=off — medium/high-risk bites are marked not source-grounded')
+  const validator = config.EXERCISE_VALIDATION ? new SandboxExerciseValidator() : new SkipExerciseValidator()
+
+  const app = createApp({ config, db: database.db, verifier, clock: systemClock, ai, grounding, validator })
   const server = app.listen(config.PORT, () => {
     console.log(`[bagelbite] API listening on :${config.PORT}`)
   })

@@ -195,3 +195,16 @@ Each item: what was unclear → what was decided → why.
   first-enrollments are resolved by the partial unique index (one current canonical skeleton per
   topic); the loser re-reads the winner. Node states start `available` iff the node has no
   prerequisites. 36 tests.
+- **M5 done** — `GET /bites/:id`. Lazy `(node, tier)` generation with in-process dedupe + partial
+  unique index; grounding per risk tier (fail closed on search errors, honest "not source-grounded"
+  marker when grounding is disabled); high tier: verify → regenerate once with concerns → hedge.
+  Exercise validator: static contract check + two sandboxed runs (solution passes ≥2 tests, starter
+  fails ≥1) in `node --permission --eval <harness>` with an empty env, 64 MB heap, 5 s kill. Verified
+  by probe: file access is refused ("Access to this API has been restricted"), infinite loops are
+  killed. **Residual risk:** Node 22's permission model does not restrict network, so a
+  prompt-injected exercise could make outbound requests during validation (no credentials or files
+  are reachable). Invalid exercises get one repair call, then are dropped — a bite can be served
+  without an exercise (logged as a content bug) rather than with an untested one. Tier is assigned
+  on first open from the adaptive signal; views log cache hit/miss; wiki-links become relations.
+  On Windows, `spawn(..., {env: {}})` still exposes ~11 OS default vars (HOMEPATH, TEMP…) — no
+  secrets; Linux/Railway gets an empty env. 52 tests.
