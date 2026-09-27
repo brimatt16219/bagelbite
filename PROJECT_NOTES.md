@@ -178,3 +178,11 @@ Each item: what was unclear → what was decided → why.
   + generated migration, pg/PGlite client, Firebase/dev token verifiers, user upsert, JSON error
   handler. 9 tests. Bundled `dist/` boots and migrates an on-disk PGlite (smoke-tested). Note: PGlite's
   node fs needs the data dir's parent to exist — `openPglite` creates it.
+- **M3 done** — `AiService` semantic interface (scope, generateLesson, repairExercises, verifyLesson,
+  hedgeLesson, grade, streamTutor) with three implementations: Anthropic (structured outputs via
+  `messages.parse` + zod, Sonnet 5 without sampling params, Haiku at temperature 0, streamed tutor
+  with thinking off and a cached system prompt), offline (labelled templates for keyless dev), and a
+  scripted test fake. Token usage is logged per call to `llm_calls`. Tavily grounding **fails
+  closed**: a failed search throws instead of returning nothing, because shared lesson content is
+  cached forever — silently caching ungrounded content for every future learner would defeat the
+  safety floor. 25 tests.
