@@ -3,6 +3,9 @@ import { openPglite, openPostgres } from './db/client'
 import { createApp } from './app'
 import { DevTokenVerifier, FirebaseTokenVerifier } from './auth/verifier'
 import { systemClock } from './lib/clock'
+import { AnthropicAiService } from './ai/anthropic'
+import { OfflineAiService } from './ai/offline'
+import { DbUsageRecorder } from './ai/usage'
 
 async function main() {
   const config = loadConfig()
@@ -13,7 +16,19 @@ async function main() {
 
   const verifier = config.AUTH_MODE === 'dev' ? new DevTokenVerifier() : await FirebaseTokenVerifier.create(config)
 
-  const app = createApp({ config, db: database.db, verifier, clock: systemClock })
+  const usage = new DbUsageRecorder(database.db)
+  const ai =
+    config.LLM_PROVIDER === 'offline'
+      ? new OfflineAiService()
+      : new AnthropicAiService({
+          apiKey: config.ANTHROPIC_API_KEY,
+          generationModel: config.CLAUDE_MODEL_GENERATION,
+          gradingModel: config.CLAUDE_MODEL_GRADING,
+          usage,
+        })
+  if (config.LLM_PROVIDER === 'offline') console.warn('[config] LLM_PROVIDER=offline — serving labelled template content, not AI output')
+
+  const app = createApp({ config, db: database.db, verifier, clock: systemClock, ai })
   const server = app.listen(config.PORT, () => {
     console.log(`[bagelbite] API listening on :${config.PORT}`)
   })

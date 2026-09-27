@@ -186,3 +186,12 @@ Each item: what was unclear → what was decided → why.
   closed**: a failed search throws instead of returning nothing, because shared lesson content is
   cached forever — silently caching ungrounded content for every future learner would defeat the
   safety floor. 25 tests.
+- **M4 done** — `POST /topics/enroll`, `GET /users/me/enrollments`, `GET /topics/:topicId/enrollment`.
+  Exact normalized-name hit on a topic with a skeleton → reuse, no Claude call. Otherwise one scope
+  call receives up to 12 similar existing topics and may return `matchedExistingTopicId` (dedup).
+  Disambiguate/unsupported write nothing. Related topics become stub `topics` + `topic_relations`
+  (edge direction: enrolled topic → suggested topic, `relationType` describes the suggested topic's
+  role). A stub topic is reused and gets a skeleton when someone later enrolls in it. Concurrent
+  first-enrollments are resolved by the partial unique index (one current canonical skeleton per
+  topic); the loser re-reads the winner. Node states start `available` iff the node has no
+  prerequisites. 36 tests.

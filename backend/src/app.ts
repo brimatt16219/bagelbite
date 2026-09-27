@@ -10,12 +10,15 @@ import { authMiddleware, currentUser } from './auth/middleware'
 import type { TokenVerifier } from './auth/verifier'
 import { errorHandler, notFound } from './lib/errors'
 import type { Clock } from './lib/clock'
+import type { AiService } from './ai/types'
+import { topicsRouter } from './routes/topics'
 
 export interface AppDeps {
   config: Pick<Config, 'corsOrigins' | 'NODE_ENV'>
   db: Db
   verifier: TokenVerifier
   clock: Clock
+  ai: AiService
 }
 
 export function createApp(deps: AppDeps) {
@@ -51,6 +54,8 @@ export function createApp(deps: AppDeps) {
     }
     res.json(body)
   })
+
+  api.use(topicsRouter(deps))
 
   app.use(api)
   app.use((_req, _res, next) => next(notFound('Route')))
