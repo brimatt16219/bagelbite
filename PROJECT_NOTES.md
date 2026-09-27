@@ -171,3 +171,10 @@ Each item: what was unclear → what was decided → why.
 - **2026-09-26** — Read all 17 vault docs. No Postgres, Docker, API keys or `gh` locally → PGlite,
   dev auth, offline LLM for local verification. Created branch `feat/v1-mvp` from the uncommitted
   `feat/frontend-foundations` work. Wrote this file and `PLAN.md`.
+- **M1 done** — theme tokens, UI primitives, shell, routing. Primary buttons use dark text on the
+  accent fill because white on `#e39a5c` fails WCAG AA (Design.md already flags accessibility as open).
+  Commits are made by Brian; Claude hands over the commit command at each milestone.
+- **M2 done** — Express 5 app factory, zod config with production guards, Drizzle schema (20 tables)
+  + generated migration, pg/PGlite client, Firebase/dev token verifiers, user upsert, JSON error
+  handler. 9 tests. Bundled `dist/` boots and migrates an on-disk PGlite (smoke-tested). Note: PGlite's
+  node fs needs the data dir's parent to exist — `openPglite` creates it.
