@@ -1,0 +1,1 @@
+ALTER TABLE "review_items" ADD COLUMN "last_rated_at" timestamp with time zone;

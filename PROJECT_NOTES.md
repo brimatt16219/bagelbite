@@ -208,3 +208,13 @@ Each item: what was unclear → what was decided → why.
   on first open from the adaptive signal; views log cache hit/miss; wiki-links become relations.
   On Windows, `spawn(..., {env: {}})` still exposes ~11 OS default vars (HOMEPATH, TEMP…) — no
   secrets; Linux/Railway gets an empty env. 52 tests.
+- **M6 done** — `POST /bites/:id/retrieval-prompts/:promptId/response`, `POST /review-logs/:id/rating`,
+  `GET /users/me/reviews/due`, `GET /topics/:topicId/next`, `GET /users/me/dashboard`. Added migration
+  `0001` (`review_items.last_rated_at`): a card is created when first answered but only counts as
+  due after its first self-rating — otherwise an unrated answer would appear in the due list
+  immediately. ts-fsrs with `enable_short_term: false` (first ratings → ~1/2/3/8 days). Guards:
+  one first exposure per question, rate before re-answering it, reviews only when due, wrong answers
+  can only be rated "again", and only the latest answer on an item can be rated (a superseded,
+  abandoned answer can't apply FSRS twice). Mastery = teaching complete + every taught question
+  correct and rated good/easy in ≥2 distinct sessions; mastering unlocks dependents and updates
+  mastery-weighted progress + a `mastery_events` row. 65 tests.

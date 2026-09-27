@@ -341,6 +341,8 @@ export const reviewItems = pgTable(
     // Full ts-fsrs card (difficulty, stability, reps, lapses, state…); `due` is denormalized for indexing.
     fsrs: jsonb('fsrs').$type<StoredFsrsCard>().notNull(),
     due: timestamp('due', { withTimezone: true }).notNull(),
+    // Null until the learner's first self-rating schedules the card; only rated items can be "due".
+    lastRatedAt: timestamp('last_rated_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [

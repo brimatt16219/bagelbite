@@ -1,9 +1,10 @@
 import { Router } from 'express'
 import { z } from 'zod'
-import type { EnrollResponse, EnrollmentDetail, EnrollmentSummary } from '@shared/api'
+import type { EnrollResponse, EnrollmentDetail, EnrollmentSummary, NextStep } from '@shared/api'
 import { currentUser } from '../auth/middleware'
 import { enroll } from '../content/enrollment'
-import { enrollmentDetail, listEnrollments } from '../content/progress'
+import { enrollmentDetail, findEnrollmentForTopic, listEnrollments } from '../content/progress'
+import { nextStep } from '../learning/composer'
 import { notFound } from '../lib/errors'
 import { uuidParam } from '../lib/http'
 import type { AppDeps } from '../app'
@@ -35,6 +36,15 @@ export function topicsRouter(deps: AppDeps): Router {
     const detail: EnrollmentDetail | null = await enrollmentDetail(deps.db, uid, topicId, deps.clock.now())
     if (!detail) throw notFound('Enrollment')
     res.json(detail)
+  })
+
+  router.get('/topics/:topicId/next', async (req, res) => {
+    const { uid } = currentUser(req)
+    const topicId = uuidParam(req.params.topicId, 'Enrollment')
+    const progress = await findEnrollmentForTopic(deps.db, uid, topicId)
+    if (!progress) throw notFound('Enrollment')
+    const body: NextStep = await nextStep(deps.db, progress.id, deps.clock.now())
+    res.json(body)
   })
 
   return router

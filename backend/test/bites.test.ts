@@ -1,37 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import request from 'supertest'
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import {
   biteViewEvents,
   exerciseBankItems,
   lessonVariants,
   retrievalPromptBankItems,
-  skeletonNodes,
   topicRelations,
   topics,
-  userNodeStates,
 } from '../src/db/schema'
 import { citationFor, splitSections } from '../src/learning/bites'
 import { extractWikiLinks } from '../src/content/wikiLinks'
 import { OfflineAiService } from '../src/ai/offline'
-import { auth, createTestContext, type TestContext } from './helpers'
-
-export async function enrollTopic(ctx: TestContext, topic: string, uid = 'alice') {
-  const res = await request(ctx.app).post('/topics/enroll').set(auth(uid)).send({ topic })
-  expect(res.body.status).toBe('resolved')
-  return res.body as { topicId: string; userTopicProgressId: string; firstBiteId: string }
-}
-
-/** UserNodeState id for the node at `orderIndex`, optionally force-unlocked for the test. */
-export async function biteAt(ctx: TestContext, progressId: string, orderIndex: number, unlock = false) {
-  const [row] = await ctx.database.db
-    .select({ id: userNodeStates.id })
-    .from(userNodeStates)
-    .innerJoin(skeletonNodes, eq(skeletonNodes.id, userNodeStates.skeletonNodeId))
-    .where(and(eq(userNodeStates.userTopicProgressId, progressId), eq(skeletonNodes.orderIndex, orderIndex)))
-  if (unlock) await ctx.database.db.update(userNodeStates).set({ status: 'available' }).where(eq(userNodeStates.id, row.id))
-  return row.id
-}
+import { auth, biteAt, createTestContext, enrollTopic, type TestContext } from './helpers'
 
 const getBite = (ctx: TestContext, id: string, uid = 'alice') => request(ctx.app).get(`/bites/${id}`).set(auth(uid))
 

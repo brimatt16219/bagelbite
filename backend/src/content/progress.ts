@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNotNull, lte, sql } from 'drizzle-orm'
 import type { EnrollmentDetail, EnrollmentSummary, RelatedTopicDto } from '@shared/api'
 import type { Db } from '../db/client'
 import { reviewItems, skeletonNodes, topicRelations, topics, userNodeStates, userTopicProgress } from '../db/schema'
@@ -21,7 +21,7 @@ export async function listEnrollments(db: Db, userId: string, now: Date): Promis
       nodeCount: sql<number>`(select count(*)::int from ${userNodeStates} uns where uns.user_topic_progress_id = ${userTopicProgress.id})`,
       masteredCount: sql<number>`(select count(*)::int from ${userNodeStates} uns where uns.user_topic_progress_id = ${userTopicProgress.id} and uns.status = 'mastered')`,
       startedCount: sql<number>`(select count(*)::int from ${userNodeStates} uns where uns.user_topic_progress_id = ${userTopicProgress.id} and uns.started_at is not null)`,
-      dueReviewCount: sql<number>`(select count(*)::int from ${reviewItems} ri join ${userNodeStates} uns on uns.id = ri.user_node_state_id where uns.user_topic_progress_id = ${userTopicProgress.id} and ri.due <= ${now.toISOString()}::timestamptz)`,
+      dueReviewCount: sql<number>`(select count(*)::int from ${reviewItems} ri join ${userNodeStates} uns on uns.id = ri.user_node_state_id where uns.user_topic_progress_id = ${userTopicProgress.id} and ri.last_rated_at is not null and ri.due <= ${now.toISOString()}::timestamptz)`,
     })
     .from(userTopicProgress)
     .innerJoin(topics, eq(topics.id, userTopicProgress.topicId))
@@ -104,7 +104,7 @@ export async function countDueReviews(db: Db, userId: string, now: Date): Promis
   const [row] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(reviewItems)
-    .where(and(eq(reviewItems.userId, userId), lte(reviewItems.due, now)))
+    .where(and(eq(reviewItems.userId, userId), isNotNull(reviewItems.lastRatedAt), lte(reviewItems.due, now)))
   return row?.n ?? 0
 }
 
