@@ -218,3 +218,13 @@ Each item: what was unclear → what was decided → why.
   abandoned answer can't apply FSRS twice). Mastery = teaching complete + every taught question
   correct and rated good/easy in ≥2 distinct sessions; mastering unlocks dependents and updates
   mastery-weighted progress + a `mastery_events` row. 65 tests.
+- **M7 done** — `POST /bites/:id/attempts` (client-reported Sandpack result; passing must be
+  all-tests-pass; hintsUsed = tutor questions + solution reveal), `POST /bites/:id/reveal-solution`
+  (after 3 failed attempts), `POST /bites/:id/flag` (target must be content from this bite's node;
+  high-risk → suppressed at once, regenerated + re-verified on next view; repeat flag idempotent),
+  `GET/POST /bites/:id/chat` (SSE; learner message persisted first; history capped at 8 and forced
+  to start with a user turn; validation errors are JSON, mid-stream failures are an `error` event;
+  client disconnect aborts the upstream stream). `npm run flags` CLI: list / confirm (lesson →
+  suppressed so the next view regenerates a new version; prompt/exercise → superseded, never
+  selected again) / dismiss (lifts suppression when no other open flag remains). Backend complete:
+  77 tests.
