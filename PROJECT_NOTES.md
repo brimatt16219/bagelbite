@@ -252,3 +252,37 @@ Each item: what was unclear → what was decided → why.
   first-attempt pass rate, calibration, session mix, open flags, bites missing an exercise) with a
   regression test that runs it against real activity, and the root README. Cost query uses standard
   post-2026-09-01 Sonnet 5 pricing ($3/$15 per MTok), Haiku 4.5 ($1/$5), Tavily $0.005/search.
+- **M10 done** — Full suites: 81 backend + 21 frontend tests, lint + typecheck clean, both production
+  builds pass. Re-verified in the browser with a fresh learner, plus live shared-content reuse (second
+  learner typing "sql  JOINS" got the same topic and lesson row). Built server under
+  `NODE_ENV=production` with dev settings refuses to start and lists every problem. Requirement
+  checklist ticked with evidence in `PLAN.md` §6. Skeptical review found and fixed:
+  (1) concurrent ratings could double-record a mastery event → conditional status transition;
+  (2) Firebase verifier used `applicationDefault()` although `verifyIdToken` only needs the project id
+  (likely failure on Railway), and mapped every failure to "session expired" → no credential unless a
+  service account is given; only `auth/*` errors are 401s;
+  (3) client refetches after each answer inflated `bite_view_events` → one view per bite per
+  30-minute window;
+  (4) production accepted a localhost-only `CORS_ORIGINS` → refused;
+  (5) Railway build could skip devDependencies (tsup) when `NODE_ENV=production` is set at build time
+  → `npm ci --include=dev && npm run build`.
+
+## 4. Known limitations and open risks (handoff)
+
+- **Not run against real services.** No Anthropic, Tavily or Firebase credentials exist on this
+  machine. The integrations are implemented against the documented SDK/API shapes and unit-tested
+  with stubs; content quality, structured-output behaviour on Sonnet 5, and Google sign-in are
+  unverified until a real-key smoke test (first item in the vault's Tasks → Now).
+- **Exercises are JavaScript only** (Sandpack + the server-side validator). Non-JS topics model the
+  concept in JS. React-component exercises (JSX/DOM) aren't supported in v1.
+- **Validator network access.** Node 22's permission model can't block network from the sandbox; a
+  prompt-injected exercise could make outbound requests during validation (no files, env or
+  credentials are reachable).
+- **No abuse limits** on generation or tutor volume, by the docs' own decision — add before inviting
+  users beyond Brian.
+- **Mastery pacing.** Dependent bites unlock only after spaced review (days apart). This is the
+  intended pedagogy, but watch activation data for stalls.
+- **Exercise grading is client-reported.** Learner code never runs on the server, by design; a
+  learner can fake their own pass.
+- **Temperature.** The docs' low-temperature rule can't be applied on Sonnet 5 (it rejects sampling
+  parameters); consistency relies on structured outputs.

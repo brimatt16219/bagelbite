@@ -29,18 +29,19 @@ export class DevTokenVerifier implements TokenVerifier {
 
 /** Firebase Admin `verifyIdToken` — the same pattern as Voyager (Architecture.md). */
 export class FirebaseTokenVerifier implements TokenVerifier {
-  private constructor(private readonly verifyIdToken: (token: string) => Promise<Record<string, unknown>>) {}
+  /** Prefer `create`; the constructor takes the verify function directly so tests can inject one. */
+  constructor(private readonly verifyIdToken: (token: string) => Promise<Record<string, unknown>>) {}
 
   static async create(config: Config): Promise<FirebaseTokenVerifier> {
-    const { initializeApp, getApps, cert, applicationDefault } = await import('firebase-admin/app')
+    const { initializeApp, getApps, cert } = await import('firebase-admin/app')
     const { getAuth } = await import('firebase-admin/auth')
+    // verifyIdToken only needs the project id (it checks signatures against Google's public keys),
+    // so a service account is optional — hosts without Google credentials (Railway) work as-is.
     const app =
       getApps()[0] ??
       initializeApp({
         projectId: config.FIREBASE_PROJECT_ID,
-        credential: config.FIREBASE_SERVICE_ACCOUNT_JSON
-          ? cert(parseServiceAccount(config.FIREBASE_SERVICE_ACCOUNT_JSON))
-          : applicationDefault(),
+        ...(config.FIREBASE_SERVICE_ACCOUNT_JSON ? { credential: cert(parseServiceAccount(config.FIREBASE_SERVICE_ACCOUNT_JSON)) } : {}),
       })
     const auth = getAuth(app)
     return new FirebaseTokenVerifier((token) => auth.verifyIdToken(token) as unknown as Promise<Record<string, unknown>>)
@@ -50,8 +51,12 @@ export class FirebaseTokenVerifier implements TokenVerifier {
     let decoded: Record<string, unknown>
     try {
       decoded = await this.verifyIdToken(token)
-    } catch {
-      throw new InvalidTokenError('Firebase rejected the ID token')
+    } catch (err) {
+      // Only token problems (auth/id-token-expired, auth/argument-error, …) are 401s; anything else
+      // (e.g. failing to fetch Google's signing keys) is a server-side failure, not "sign in again".
+      const code = (err as { code?: unknown })?.code
+      if (typeof code === 'string' && code.startsWith('auth/')) throw new InvalidTokenError(code)
+      throw err
     }
     const uid = String(decoded.uid ?? '')
     if (!uid) throw new InvalidTokenError('Token has no uid')

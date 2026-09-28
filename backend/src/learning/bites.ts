@@ -3,7 +3,7 @@
  * from this learner's UserNodeState (tier, selections, progress) plus the shared LessonVariant and
  * the selected bank items. `GET /bites/:id` takes a UserNodeState id.
  */
-import { and, asc, count, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, count, eq, gte, inArray, isNull, sql } from 'drizzle-orm'
 import type { AnsweredPromptDto, BiteDto, CitationDto, ConfidenceRating, ScaffoldingTier } from '@shared/api'
 import type { Db } from '../db/client'
 import {
@@ -22,7 +22,7 @@ import {
 import { ensureLessonVariant, type LessonDeps, type LessonVariantRow } from '../content/lessons'
 import { HttpError, notFound } from '../lib/errors'
 import { tierForNextNode } from './adaptive'
-import { touchSession } from './sessions'
+import { SESSION_GAP_MS, touchSession } from './sessions'
 
 export const PROMPTS_PER_BITE = 3
 export const FAILED_ATTEMPTS_BEFORE_REVEAL = 3
@@ -126,14 +126,23 @@ export async function composeBite(deps: LessonDeps, userId: string, biteId: stri
   }
 
   const { variant, cacheHit } = await ensureLessonVariant(deps, state.skeletonNodeId, state.scaffoldingTier, userId)
-  await db.insert(biteViewEvents).values({
-    userId,
-    userNodeStateId: state.id,
-    skeletonNodeId: state.skeletonNodeId,
-    scaffoldingTier: state.scaffoldingTier,
-    cacheHit,
-    createdAt: now,
-  })
+  // Count one view per bite per session window — the client refetches after every answer, and
+  // those refetches must not swamp the shared-content cache-hit metric.
+  const [recentView] = await db
+    .select({ id: biteViewEvents.id })
+    .from(biteViewEvents)
+    .where(and(eq(biteViewEvents.userNodeStateId, state.id), gte(biteViewEvents.createdAt, new Date(now.getTime() - SESSION_GAP_MS))))
+    .limit(1)
+  if (!recentView || !cacheHit) {
+    await db.insert(biteViewEvents).values({
+      userId,
+      userNodeStateId: state.id,
+      skeletonNodeId: state.skeletonNodeId,
+      scaffoldingTier: state.scaffoldingTier,
+      cacheHit,
+      createdAt: now,
+    })
+  }
   if (!state.teachingCompletedAt) await touchSession(db, userId, now, 'new_content')
   await db.update(userTopicProgress).set({ lastActivityAt: now }).where(eq(userTopicProgress.id, state.userTopicProgressId))
 

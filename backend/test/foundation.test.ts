@@ -3,6 +3,7 @@ import request from 'supertest'
 import { eq } from 'drizzle-orm'
 import { users } from '../src/db/schema'
 import { loadConfig, ConfigError } from '../src/config'
+import { FirebaseTokenVerifier, InvalidTokenError } from '../src/auth/verifier'
 import { auth, createTestContext, type TestContext } from './helpers'
 
 describe('backend foundation', () => {
@@ -82,9 +83,33 @@ describe('config', () => {
     expect(() => loadConfig({ TAVILY_API_KEY: 'x' })).toThrow(ConfigError)
   })
 
+  it('requires a real web origin for CORS in production', () => {
+    const prod = { ...base, NODE_ENV: 'production', DATABASE_URL: 'postgres://u:p@h:5432/db', ANTHROPIC_API_KEY: 'k' }
+    expect(() => loadConfig(prod)).toThrow(/CORS_ORIGINS must list/)
+    expect(loadConfig({ ...prod, CORS_ORIGINS: 'https://bagelbite.app' }).corsOrigins).toEqual(['https://bagelbite.app'])
+  })
+
   it('accepts a keyless local-dev setup', () => {
     const cfg = loadConfig({ AUTH_MODE: 'dev', LLM_PROVIDER: 'offline', GROUNDING: 'off', CORS_ORIGINS: 'http://a, http://b' })
     expect(cfg.corsOrigins).toEqual(['http://a', 'http://b'])
     expect(cfg.EXERCISE_VALIDATION).toBe(true)
+  })
+})
+
+describe('FirebaseTokenVerifier', () => {
+  it('maps a decoded token to an identity', async () => {
+    const verifier = new FirebaseTokenVerifier(async () => ({ uid: 'u1', email: 'a@b.c', name: 'Ada', picture: 'https://x/p.png' }))
+    expect(await verifier.verify('t')).toEqual({ uid: 'u1', email: 'a@b.c', displayName: 'Ada', photoUrl: 'https://x/p.png' })
+  })
+
+  it('treats auth/* failures as invalid tokens but surfaces infrastructure failures', async () => {
+    const expired = new FirebaseTokenVerifier(async () => {
+      throw Object.assign(new Error('expired'), { code: 'auth/id-token-expired' })
+    })
+    await expect(expired.verify('t')).rejects.toBeInstanceOf(InvalidTokenError)
+    const outage = new FirebaseTokenVerifier(async () => {
+      throw new Error('getaddrinfo ENOTFOUND www.googleapis.com')
+    })
+    await expect(outage.verify('t')).rejects.not.toBeInstanceOf(InvalidTokenError)
   })
 })

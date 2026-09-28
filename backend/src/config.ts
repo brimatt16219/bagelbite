@@ -50,6 +50,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (!cfg.EXERCISE_VALIDATION) problems.push('EXERCISE_VALIDATION=false is not allowed in production')
     if (!cfg.DATABASE_URL) problems.push('DATABASE_URL is required in production')
     if (!cfg.ANTHROPIC_API_KEY) problems.push('ANTHROPIC_API_KEY is required in production')
+    const origins = cfg.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    if (!origins.length || origins.every((o) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o))) {
+      problems.push('CORS_ORIGINS must list the web app origin (e.g. your Vercel URL) in production')
+    }
   }
   if (cfg.AUTH_MODE === 'firebase' && !cfg.FIREBASE_PROJECT_ID) {
     problems.push('FIREBASE_PROJECT_ID is required when AUTH_MODE=firebase')

@@ -10,7 +10,7 @@
  * - UserTopicProgress.percentComplete is mastery-weighted, and the enrollment completes when every
  *   node is mastered.
  */
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { biteAttempts, masteryEvents, reviewItems, reviewLogs, skeletonNodes, userNodeStates, userTopicProgress } from '../db/schema'
 import { masteryPercent } from '../content/progress'
@@ -67,8 +67,15 @@ export async function refreshNodeProgress(db: Db, stateId: string, now: Date): P
   const nowMastered = !alreadyMastered && Boolean(teachingCompletedAt) && sessions.length > 0 && sessions.every((n) => n >= REQUIRED_SESSIONS)
 
   let unlockedBiteIds: string[] = []
-  if (nowMastered) {
-    await db.update(userNodeStates).set({ status: 'mastered', completedAt: now }).where(eq(userNodeStates.id, state.id))
+  // Conditional transition: if two ratings land concurrently, only one records the mastery event.
+  const [transitioned] = nowMastered
+    ? await db
+        .update(userNodeStates)
+        .set({ status: 'mastered', completedAt: now })
+        .where(and(eq(userNodeStates.id, state.id), ne(userNodeStates.status, 'mastered')))
+        .returning({ id: userNodeStates.id })
+    : []
+  if (transitioned) {
     await db.insert(masteryEvents).values({
       userId: progress.userId,
       userNodeStateId: state.id,

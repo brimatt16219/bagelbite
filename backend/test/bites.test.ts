@@ -60,8 +60,15 @@ describe('lesson content pipeline + bite composition', () => {
     expect(ctx.ai.count('generateLesson')).toBe(1)
     expect(again.body.prompts.map((p: { id: string }) => p.id)).toEqual(first.body.prompts.map((p: { id: string }) => p.id))
     expect(bobs.body.lesson.id).toBe(first.body.lesson.id)
+    // Alice's immediate repeat view is the same visit (e.g. a refetch) and is not logged again.
     const views = await ctx.database.db.select().from(biteViewEvents)
-    expect(views.map((v) => v.cacheHit)).toEqual([false, true, true])
+    expect(views.map((v) => [v.userId, v.cacheHit])).toEqual([
+      ['dev-alice', false],
+      ['dev-bob', true],
+    ])
+    ctx.clock.advance(31 * 60 * 1000)
+    await getBite(ctx, alice.firstBiteId)
+    expect(await ctx.database.db.select().from(biteViewEvents)).toHaveLength(3)
   })
 
   it('shares one generation between concurrent first views', async () => {

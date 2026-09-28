@@ -136,26 +136,31 @@ Each milestone ends with lint + typecheck + tests green, then one Conventional C
 | M9 | **Ops & docs**: CI workflow, metrics SQL, flag-review script, deploy configs, env examples, README | CI YAML runs the same commands that pass locally; README covers setup/run/test/env/structure |
 | M10 | **Verification**: full suite, lint, typecheck; run the app end-to-end; requirement checklist; skeptical review + fixes | Everything green; every checklist item in §6 is ticked with evidence |
 
-## 6. Requirement checklist (from MVP-Synthesis §5)
+## 6. Requirement checklist (from MVP-Synthesis §5) — verified 2026-09-27
 
-- [ ] Google sign-in (Firebase Auth)
-- [ ] Topic entry + one-line baseline, no pretest
-- [ ] Shared `CurriculumSkeleton` generated once per topic and reused; per-node `riskTier`; 2–4 related topics as `TopicRelation`s
-- [ ] Topic scoping: umbrella topics → 3–4 candidates → picker UI
-- [ ] Shared `LessonVariant` / prompt bank / exercise bank, lazy per `(node, tier)`, 2 tiers, cached forever
-- [ ] Explanation interleaved with 2–4 retrieval prompts (recall / explain-back / apply-scenario) with misconception banks
-- [ ] Sandpack exercise with a required, validated test spec
-- [ ] Grounding (Tavily) for medium/high tier; `claims` for medium; verification call for high tier
-- [ ] Personal `UserTopicProgress` (pinned skeleton version) + `UserNodeState` (tier, selection, progress)
-- [ ] Citation element on every bite (sources, or the "general knowledge" marker)
-- [ ] Flag button + `ContentFlag` on every content block, targeting shared content; high tier suppresses
-- [ ] Test-based exercise grading (client) + Haiku retrieval grading with the misconception bank first
-- [ ] Confidence self-rating (1–4) before every reveal
-- [ ] `ts-fsrs` `ReviewItem`/`ReviewLog`; composer serves due reviews ahead of new content
-- [ ] Mastery gate (≥2 correct spaced retrievals) + mastery-weighted dashboard with due-review count
-- [ ] Deterministic adaptive difficulty → `scaffoldingTier`
-- [ ] In-bite chat tutor (Sonnet, streamed, capped history)
-- [ ] Model tiering: Haiku grading, Sonnet generation/chat
-- [ ] Instrumentation floor (attempts, prompt responses, review logs, sessions, flags, token usage, cache hit/miss)
-- [ ] Wiki-link references in lesson markdown → `TopicRelation`s
-- [ ] Error states follow the UI-Kit copy convention; generation shows skeleton loaders
+Evidence: **T** = automated test (`backend/test/*`, `frontend/src/**/*.test.tsx`), **B** = exercised in the
+browser against the live API, **C** = code/config inspection. "Live-key only" items are fully
+implemented but could not be run against the real service here (no credentials on this machine).
+
+- [x] Google sign-in (Firebase Auth) — C + T (verifier mapping); dev sign-in exercised in B. *Live-key only for real Google sign-in.*
+- [x] Topic entry + one-line baseline, no pretest — T (`enrollment.test.ts`), B
+- [x] Shared `CurriculumSkeleton` once per topic, reused; per-node `riskTier`; 2–4 related topics as `TopicRelation`s — T; B (second learner typing "sql  JOINS" got the same topic and lesson)
+- [x] Topic scoping: umbrella → 3–4 candidates → picker; out-of-vertical → declined — T (backend + `topics.test.tsx`), B (`.NET`)
+- [x] Shared `LessonVariant` / prompt / exercise banks, lazy per `(node, tier)`, 2 tiers, cached forever — T (`bites.test.ts`: cache hit, concurrent dedupe, suppression regeneration)
+- [x] Explanation interleaved with retrieval prompts (recall / explain-back / apply) + misconception banks — T, B (progressive reveal)
+- [x] Sandpack exercise with a required, validated test spec — T (real sandbox: validation, repair, drop), B (Sandpack 0/3 → 3/3)
+- [x] Grounding (Tavily) medium/high; `claims` for medium; verification + regenerate + hedge for high — T (fake grounding/AI incl. fail-closed). *Live-key only against real Tavily/Claude.*
+- [x] Personal `UserTopicProgress` (pinned version) + `UserNodeState` (tier, selection, progress) — T
+- [x] Citation element on every bite (sources or "general knowledge" marker, never fabricated) — T, B
+- [x] Flag button + `ContentFlag` on every block, targeting shared content; high tier suppresses; manual review CLI — T, B, CLI run
+- [x] Test-based exercise grading (client) + Haiku retrieval grading with the misconception bank first — T, B (misconception path)
+- [x] Confidence self-rating (1–4) before every reveal — T (`bites.test.tsx`), B (button disabled until chosen)
+- [x] `ts-fsrs` `ReviewItem`/`ReviewLog`; composer serves due reviews first — T (fake clock across days)
+- [x] Mastery gate (≥2 correct spaced sessions) + mastery-weighted dashboard with due counts — T, B (dashboard)
+- [x] Deterministic adaptive difficulty → `scaffoldingTier` — T (`interaction.test.ts`)
+- [x] In-bite chat tutor (Sonnet, streamed, capped history) — T (SSE, cap, errors), B (offline tutor). *Live-key only for real Sonnet.*
+- [x] Model tiering: Haiku grading (temperature 0), Sonnet generation/chat (no sampling params) — T (`ai.test.ts`)
+- [x] Instrumentation floor (attempts, responses, review logs, sessions, flags, token usage, cache hit/miss, mastery events, lifecycle timestamps) — T (`metrics.test.ts` runs every query in `scripts/metrics.sql`)
+- [x] Wiki-link references → `TopicRelation`s — T
+- [x] Error states follow the UI-Kit copy convention; generation shows skeleton loaders — C, T (error copy), B
+- [x] Production guards: dev auth / offline AI / grounding off / missing DB, key or CORS origin all refuse startup — T, and the built server was run with dev settings under `NODE_ENV=production` and exited with every problem listed
