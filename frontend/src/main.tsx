@@ -6,13 +6,16 @@ import './index.css'
 import { queryClient } from './lib/queryClient'
 import { router } from './lib/router'
 import { ToastProvider } from './components/ui/ToastProvider'
+import { AuthProvider } from './features/auth/AuthProvider'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <RouterProvider router={router} />
-      </ToastProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

@@ -13,6 +13,11 @@ export default defineConfig({
       '@shared': fileURLToPath(new URL('../shared', import.meta.url)),
     },
   },
+  build: {
+    // The bite page's chunk is ~800 kB because Sandpack (an in-browser bundler) lives there; it
+    // is lazy-loaded only on that route, so the entry bundle stays ~200 kB.
+    chunkSizeWarningLimit: 900,
+  },
   server: {
     port: process.env.PORT ? Number(process.env.PORT) : 5173,
   },

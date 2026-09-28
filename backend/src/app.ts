@@ -31,9 +31,18 @@ export function createApp(deps: AppDeps) {
   const app = express()
   app.set('trust proxy', 1) // Railway terminates TLS in front of the app.
   app.use(helmet())
+  const localhostOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/
   app.use(
     cors({
-      origin: deps.config.corsOrigins,
+      // Explicit allow-list; outside production any localhost port is also allowed (dev servers
+      // pick free ports).
+      origin: (origin, callback) => {
+        const allowed =
+          !origin ||
+          deps.config.corsOrigins.includes(origin) ||
+          (deps.config.NODE_ENV !== 'production' && localhostOrigin.test(origin))
+        callback(null, allowed)
+      },
       methods: ['GET', 'POST'],
       allowedHeaders: ['Authorization', 'Content-Type'],
     }),

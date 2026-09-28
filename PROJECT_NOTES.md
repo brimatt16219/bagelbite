@@ -228,3 +228,19 @@ Each item: what was unclear → what was decided → why.
   suppressed so the next view regenerates a new version; prompt/exercise → superseded, never
   selected again) / dismiss (lifts suppression when no other open flag remains). Backend complete:
   77 tests.
+- **M8 done** — Frontend: auth (Firebase Google + labelled dev sign-in), home (topic + baseline,
+  disambiguation picker, unsupported message, due-review banner, topic cards), curriculum page
+  (composer "what's next", statuses, locked prerequisites, related topics → prefilled home), bite view
+  (split layout; sections reveal as each question is rated; confidence → reveal → self-rating;
+  citation; flag on every block; tutor chat over SSE; Sandpack exercise with client-side tests,
+  attempts, reveal-after-3, localStorage code persistence), reviews session, progress dashboard.
+  Route pages are lazy-loaded (entry 207 kB; Sandpack's ~800 kB only on the bite route). 21 tests.
+  **Verified end to end in the browser** against the live API (keyless dev config): sign-in →
+  `.NET` disambiguation → enroll → bite 1 → 3 answers (incl. misconception path) → Sandpack
+  0/3 then 3/3 → "Bite complete" → tutor chat → flag → "What's next" → bite 2; curriculum, locked
+  bite, reviews and dashboard pages. Bugs found and fixed during that run: (1) Sandpack calls
+  `onComplete` inside its own state updater → deferred our handling out of its render;
+  (2) re-running unchanged code recorded a new attempt → deduped by code fingerprint;
+  (3) dev-mode token provider was registered in an effect that runs after children's queries →
+  moved to module scope with a module-level session (also fixed stale token after sign-out).
+  Note: Sandpack's test runner loads its bundler from codesandbox.io, so exercises need internet.
