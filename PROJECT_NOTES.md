@@ -244,3 +244,11 @@ Each item: what was unclear → what was decided → why.
   (3) dev-mode token provider was registered in an effect that runs after children's queries →
   moved to module scope with a module-level session (also fixed stale token after sign-out).
   Note: Sandpack's test runner loads its bundler from codesandbox.io, so exercises need internet.
+- **M9 done** — `.github/workflows/ci.yml` (backend + frontend jobs: lint, typecheck, test, build;
+  must be marked required in branch protection to actually block merges), `backend/.env.example` and
+  `frontend/.env.example` documenting every variable, `backend/railway.json` (build/start,
+  `/health` check) and `frontend/vercel.json` (SPA rewrite), root `package.json` convenience scripts,
+  `backend/scripts/metrics.sql` (the five MVP-Synthesis §4 queries + cache hit rate, risk-tier mix,
+  first-attempt pass rate, calibration, session mix, open flags, bites missing an exercise) with a
+  regression test that runs it against real activity, and the root README. Cost query uses standard
+  post-2026-09-01 Sonnet 5 pricing ($3/$15 per MTok), Haiku 4.5 ($1/$5), Tavily $0.005/search.
